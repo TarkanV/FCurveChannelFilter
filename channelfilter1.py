@@ -1,9 +1,9 @@
 bl_info = {
     "name" : "Graph Channel Filter",
     "author" : "TarkanV",
-    "version" : "002",
+    "version" : "0.1",
     "description" : "Allows to filter and focus on one more F-Curves. ",
-    "blender" : (2, 83, 0),
+    "blender" : (4, 3, 0),
     "location" : "Graph Editor -> Right Panel -> Graph+",
     "warning" : "",
     "category" : "Animation"
@@ -28,8 +28,8 @@ class PickOp(Operator):
     bl_idname = 'pick.op'
     bl_label = 'Pick Operator'
     
-    isol = bpy.props.BoolProperty()
-    tfrm = bpy.props.StringProperty()
+    isol : bpy.props.BoolProperty()
+    tfrm : bpy.props.StringProperty()
     
 
     
@@ -38,22 +38,53 @@ class PickOp(Operator):
     def execute(self, context):
         #if(bpy.context.space.type == 'DOPESHEET_EDITOR'):
         #bpy.ops.wm.context_set_enum(data_path="area.type", value="GRAPH_EDITOR")
-        print(bpy.context.space_data.type)
+        #print(bpy.context.space_data.type)
         
         data = bpy.context.active_object.animation_data
-        try:    
-            tsfm = data.action.fcurves
-            print ("Ce code a continué malgré tout in despite ofent :)")             
-            for  ts in tsfm:
-                if(self.isol == True):
-                    ts.hide = True 
-                tid = (str(ts.data_path) + "." + str(ts.array_index))
-                print (self.tfrm)
-                if (tid in str(self.tfrm)):
+ #     try:    
+        transforms = data.action.fcurves
+                     
+        for  transform in transforms:
+            i = 0
+            print("\n\n\n******Data path :" + transform.data_path + "\n\n\n")
+            bone_name = ""
+            if("\"" in transform.data_path):
+                bone_name = transform.data_path.split("\"")[1]
+                print(f'Bone Name  : {bone_name}')
+                selected_bones = bpy.context.selected_pose_bones_from_active_object
+                if bone_name in bpy.context.active_object.pose.bones :
+                    if(bpy.context.active_object.pose.bones[bone_name] in selected_bones):                
+                        if(self.isol == True):
+                            transform.hide = True 
+                
+                print("Data pass : " + transform.data_path)
+                if('].' in transform.data_path):
+                    path = transform.data_path.split('].')[1]
+                    print("Path :" + path)
                     
-                    ts.hide = False
-        except:
-             self.report({'INFO'}, 'This object has no attributed action.')     
+                    tid = (str(path) + "." + str(transform.array_index))
+
+
+                    if (tid in str(self.tfrm)):
+                        transform.hide = False
+            else:
+                bone_name = transform.data_path
+                #data = bpy.context.active_object.animation_data
+                   
+                transforms = data.action.fcurves
+                print ("Ce code a continué malgré tout in despite ofent :)")             
+                for  transform in transforms:
+                    if(self.isol == True):
+                        transform.hide = True 
+                    tid = (str(transform.data_path) + "." + str(transform.array_index))
+                    print("\n\n\n******Data path :" + tid + "\n\n\n")
+                    print (self.tfrm)
+                    if (tid in str(self.tfrm)):
+                        
+                        transform.hide = False                
+            
+   #   except:
+    #    self.report({'INFO'}, 'This object has no attributed action.')     
 
         #bpy.context.space_data.dopesheet.filter_text = self.tfrm;
         
@@ -89,7 +120,7 @@ class PickOp(Operator):
             self.isol = True
         else:
             self.isol = False
-        print(event.shift)
+        
         return self.execute(context)     
         
     
@@ -114,12 +145,16 @@ class GraphFilter(Panel):
         row = layout.row(align=True) 
         
         col = layout.column()
-        ting = bpy.props.BoolProperty()
+        ting : bpy.props.BoolProperty()
         col.prop(tool, "keyfocus", text="Focus On Selected")
         
         row = layout.row()
+        rotX = "rotation_axis_angle.0, rotation_quaternion.0, rotation_euler.0"
+        rotY = "rotation_axis_angle.1, rotation_quaternion.1, rotation_euler.1"
+        rotZ = "rotation_axis_angle.2, rotation_quaternion.2, rotation_euler.2"
         locs = "location.0,location.1,location.2"
-        rots = "rotation_euler.0,rotation_euler.1,rotation_euler.2"
+        
+        rots = rotX + rotY + rotZ + "rotation_quaternion.3" + "rotation_axis_angle.3"
         scals = "scale.0,scale.1,scale.2"
         row.operator('pick.op', text = "Reset", icon='FILE_REFRESH').tfrm = locs+","+rots+","+scals
         
@@ -131,9 +166,9 @@ class GraphFilter(Panel):
         
         row = layout.row()
         row.operator('pick.op', text = "Rot").tfrm = rots
-        row.operator('pick.op', text = "X", icon='KEYTYPE_EXTREME_VEC').tfrm = "rotation_euler.0"
-        row.operator('pick.op', text = "Y", icon='KEYTYPE_JITTER_VEC').tfrm = "rotation_euler.1"
-        row.operator('pick.op', text = "Z", icon='KEYTYPE_BREAKDOWN_VEC').tfrm = "rotation_euler.2"
+        row.operator('pick.op', text = "X", icon='KEYTYPE_EXTREME_VEC').tfrm = rotX
+        row.operator('pick.op', text = "Y", icon='KEYTYPE_JITTER_VEC').tfrm = rotY
+        row.operator('pick.op', text = "Z", icon='KEYTYPE_BREAKDOWN_VEC').tfrm = rotZ
         
         row = layout.row()
         row.operator('pick.op', text = "Scale").tfrm = scals
